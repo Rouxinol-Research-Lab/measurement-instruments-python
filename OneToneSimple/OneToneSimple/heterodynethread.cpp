@@ -94,9 +94,256 @@ void HeterodyneThread::simulate()
 	delete dut;
 }
 
+int capture_waveform(ViSession viOsc, char *buffer, double *points, int channel, int nPoints)
+{
+	int error;
+
+
+	error = viPrintf(viOsc, ":WAV:FORMAT WORD\n");
+	error = viPrintf(viOsc, ":WAV:SOUR CHAN%d, \n", channel);
+
+	error = viPrintf(viOsc, "WAVEFORM:YINCREMENT?\n");
+	error = viScanf(viOsc, "%t", buffer);
+	qDebug("yincrement -> %s", buffer);
+
+	std::string s = buffer;
+	std::istringstream os(s);
+	double yincrement;
+	os >> yincrement;
+
+	error = viPrintf(viOsc, "WAVEFORM:YORIGIN?\n");
+	error = viScanf(viOsc, "%t", buffer);
+	qDebug("yorigin -> %s", buffer);
+
+	std::string s2 = buffer;
+	std::istringstream os2(s2);
+	double yorigin;
+	os2 >> yorigin;
+
+
+	error = viPrintf(viOsc, ":WAV:DATA? 1, \n");
+	error = viScanf(viOsc, "%t", buffer);
+
+	int numberHead = (int)(buffer[1] - 0x30);
+	int numberOfBytes = 0;
+
+	for (int i = 2; i < numberHead + 2; i++)
+	{
+		numberOfBytes += (int)(buffer[i] - 0x30) * pow(10, numberHead - 1 - i + 2);
+	}
+
+	qDebug("*buffer -> %s", buffer);
+	qDebug("*buffer -> %c", buffer[0]);
+	qDebug("*buffer -> %c", buffer[1]);
+
+
+
+	char numberOfBytesPerPoint = 2;
+	int n_points = numberOfBytes / numberOfBytesPerPoint;
+
+
+
+	for (int i = 0; i < n_points; i++)
+	{
+		unsigned int byte1 = buffer[2 + numberHead + numberOfBytesPerPoint * i];
+		unsigned int byte2 = buffer[2 + numberHead + 1 + numberOfBytesPerPoint * i];
+
+		if (((0xff << 24) & byte2) >> 24 == 255)
+			byte2 += 0x00000100;
+
+		points[i] = ((signed int)((byte1 << 8) | byte2))*yincrement + yorigin;
+	}
+
+	return 0;
+}
+
 void HeterodyneThread::execute()
 {
+	qDebug("Thread id inside run %d", (int)QThread::currentThreadId());
 
+	int error;
+	
+	ViSession session, viPSG1, viPSG2, viAttenuator, viOsc;
+	char *buffer = new char[5000];
+
+	qDebug("PSG1 address: %s", heterodyneSettings.Source1Address.c_str());
+	qDebug("PSG2 address: %s", heterodyneSettings.Source2Address.c_str());
+	qDebug("Attenuator address: %s", heterodyneSettings.AttenuatorAddress.c_str());
+	qDebug("Oscilloscope address: %s", heterodyneSettings.OscilloscopeAddress.c_str());
+
+	error = viOpenDefaultRM(&session);
+	if (error != VI_SUCCESS)
+	{
+		qDebug("Error in locating resources");
+	}
+
+	error = viOpen(session, heterodyneSettings.Source1Address.c_str(), VI_NO_LOCK, 10000, &viPSG1);
+	if (error != VI_SUCCESS)
+	{
+		qDebug("Error in opening PSG1");
+	}
+
+	error = viOpen(session, heterodyneSettings.Source2Address.c_str(), VI_NO_LOCK, 10000, &viPSG2);
+	if (error != VI_SUCCESS)
+	{
+		qDebug("Error in opening PSG2");
+	}
+
+	error = viOpen(session, heterodyneSettings.AttenuatorAddress.c_str(), VI_NO_LOCK, 10000, &viAttenuator);
+	if (error != VI_SUCCESS)
+	{
+		qDebug("Error in opening Attenuator");
+	}
+
+	error = viOpen(session, heterodyneSettings.OscilloscopeAddress.c_str(), VI_NO_LOCK, 10000, &viOsc);
+	if (error != VI_SUCCESS)
+	{
+		qDebug("Error in opening Oscilloscope");
+	}
+
+	error = viPrintf(viPSG1, "*IDN?\n");
+	error = viScanf(viPSG1, "%t", buffer);
+	qDebug("*IDN? -> %s", buffer);
+
+
+	error = viPrintf(viPSG2, "*IDN?\n");
+	error = viScanf(viPSG2, "%t", buffer);
+	qDebug("*IDN? -> %s", buffer);
+
+
+	error = viPrintf(viAttenuator, "*IDN?\n");
+	error = viScanf(viAttenuator, "%t", buffer);
+	qDebug("*IDN? -> %s", buffer);
+
+
+	error = viPrintf(viOsc, "*IDN?\n");
+	error = viScanf(viOsc, "%t", buffer);
+	qDebug("*IDN? -> %s", buffer);
+
+	error = viPrintf(viPSG1, ":OUTP 0\n");
+	error = viPrintf(viPSG2, ":OUTP 0\n");
+
+	error = viPrintf(viPSG1, ":OUTP:MOD 0\n");
+	error = viPrintf(viPSG2, ":OUTP:MOD 0\n");
+
+	error = viPrintf(viPSG1, ":UNIT:POW DBM\n");
+	error = viPrintf(viPSG2, ":UNIT:POW DBM\n");
+
+	error = viPrintf(viPSG1, ":SOUR:POW:LEV:IMM:AMPL %d\n", heterodyneSettings.source1Amp);
+	error = viPrintf(viPSG2, ":SOUR:POW:LEV:IMM:AMPL %d\n", heterodyneSettings.source2Amp);
+
+	error = viPrintf(viAttenuator, ":ATT:BANK1:Y %d\n", heterodyneSettings.attenuation);
+
+	error = viPrintf(viOsc, ":STOP\n");
+	error = viPrintf(viOsc, ":TIM:RANG %f\n", heterodyneSettings.timeRange);
+	error = viPrintf(viOsc, ":ACQ:SRAT:ANAL %f\n", heterodyneSettings.sampleRate);
+	error = viPrintf(viOsc, ":SINGLE\n");
+	sleep(5);
+	error = viPrintf(viOsc, ":WAV:POIN?\n");
+	error = viScanf(viOsc, "%t", buffer);
+
+
+	std::string str = buffer;
+	int nPoints = std::stoi(str);
+
+	delete[] buffer;
+	buffer = new char[2 * nPoints + 1000];
+
+
+	double *Y1 = new double[nPoints];
+	double *Y2 = new double[nPoints];
+	double *Y3 = new double[nPoints];
+
+
+
+
+
+	std::ofstream datafile(heterodyneSettings.filename);
+
+	datafile << "Frequency" << "," << "I" << "," << "Q" << "\n";
+
+	const double dfreq = (heterodyneSettings.stopFrequency - heterodyneSettings.startFrequency) / (heterodyneSettings.nSteps - 1);
+
+	const double ifFreq = heterodyneSettings.ifFrequency;
+
+
+	double I;
+	double Q;
+
+	error = viPrintf(viPSG1, ":OUTP 1\n");
+	error = viPrintf(viPSG2, ":OUTP 1\n");
+
+	for (double freq = heterodyneSettings.startFrequency; freq <= heterodyneSettings.stopFrequency; freq += dfreq)
+	{
+
+
+		I = 0;
+		Q = 0;
+
+
+		for (int j = 0; j < heterodyneSettings.averages; j++)
+		{
+
+			{
+				QMutexLocker locker(&m_mutex);
+				if (m_stop) break;
+			}
+
+			error = viPrintf(viPSG1, ":FREQ %f\n", freq + ifFreq);
+			error = viPrintf(viPSG2, ":FREQ %f\n", freq);
+
+			usleep(100000);
+
+			error = viPrintf(viOsc, ":SINGLE\n");
+
+			usleep(100000);
+
+
+
+			capture_waveform(viOsc, buffer, Y1, heterodyneSettings.ChannelI, nPoints);
+			capture_waveform(viOsc, buffer, Y2, heterodyneSettings.ChannelSignal, nPoints);
+			capture_waveform(viOsc, buffer, Y3, heterodyneSettings.ChannelQ, nPoints);
+
+
+
+			double aI = 0;
+			double aQ = 0;
+			for (int i = 0; i < nPoints; i++)
+			{
+				aI += Y1[i] * Y2[i] / nPoints;
+				aQ += Y3[i] * Y2[i] / nPoints;
+			}
+			I += aI / heterodyneSettings.averages;
+			Q += aQ / heterodyneSettings.averages;
+		}
+
+
+		double result = VtodBm(4 * sqrt(I*I + Q * Q));
+
+
+
+		datafile << freq << "," << I << ',' << Q << "\n";
+
+
+
+
+	}
+
+	delete[] Y1;
+	delete[] Y2;
+	delete[] Y3;
+	delete[] buffer;
+
+	error = viPrintf(viPSG1, ":OUTPUT 0\n");
+	error = viPrintf(viPSG2, ":OUTPUT 0\n");
+
+	datafile.close();
+
+	viClose(viPSG1);
+	viClose(viPSG2);
+	viClose(viAttenuator);
+	viClose(viOsc);
+	viClose(session);
 }
 
 

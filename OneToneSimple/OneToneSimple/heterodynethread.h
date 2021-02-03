@@ -4,6 +4,7 @@
 #include <QMutex>
 #include "onetonedatamodel.h"
 #include <fstream>
+#include "visa.h"
 
 
 class HeterodyneThread : public QThread
