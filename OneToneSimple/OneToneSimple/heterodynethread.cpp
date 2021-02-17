@@ -320,7 +320,7 @@ void HeterodyneThread::execute()
 
 		double result = VtodBm(4 * sqrt(I*I + Q * Q));
 
-
+		signalDataPoint(freq, result);
 
 		datafile << freq << "," << I << ',' << Q << "\n";
 

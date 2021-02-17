@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 	w.show();
 
 	bool ok;
-	const char* filename = "C:\\Users\\lucam\\Documents\\Mestrado\\Medidas\\2021-02-03 Teste do OneToneSimple\\test.toml";
+	const char* filename = "C:\\Users\\lucam\\Documents\\Mestrado\\Medidas\\2021-02-17 Analuse 2 do circuito heterodino\\test.toml";
 	QString dirText = QInputDialog::getText(0, "Experiment TOML File",
 		"File name:", QLineEdit::Normal,
 		filename, &ok);

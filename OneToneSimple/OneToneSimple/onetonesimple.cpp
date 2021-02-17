@@ -6,6 +6,7 @@ OneToneSimple::OneToneSimple(QWidget *parent)
     ui.setupUi(this);
 
 	ui.PlotWidget->yAxis->setRange(-110, 0);
+	ui.PlotWidget->xAxis->setRange(4.9e9, 6.2e9);
 
 	ui.PlotWidget->addGraph();
 	ui.PlotWidget->graph(0)->setPen(QColor(0, 0, 255, 255));
