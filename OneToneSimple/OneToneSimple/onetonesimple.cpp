@@ -5,7 +5,7 @@ OneToneSimple::OneToneSimple(QWidget *parent)
 {
     ui.setupUi(this);
 
-	ui.PlotWidget->yAxis->setRange(-110, 0);
+	ui.PlotWidget->yAxis->setRange(-200, 0);
 	ui.PlotWidget->xAxis->setRange(4.9e9, 6.2e9);
 
 	ui.PlotWidget->addGraph();
@@ -15,10 +15,9 @@ OneToneSimple::OneToneSimple(QWidget *parent)
 	ui.PlotWidget->graph(0)->setName("Amplitude");
 }
 
-void OneToneSimple::receivedLog(char* log)
+void OneToneSimple::receivedLog(const char* log)
 {
 	qDebug("Thread id inside receivedLog %d", (int)QThread::currentThreadId());
-	qDebug("message %s", log);
 	ui.LogWidget->addItem(log);
 }
 
@@ -26,7 +25,7 @@ void OneToneSimple::receivedLog(char* log)
 void OneToneSimple::receivedDataPoint(double datax, double datay)
 {
 	qDebug("Thread id inside receivedDataPoint %d", (int)QThread::currentThreadId());
-	qDebug("freq %f amp %f", datax, datay);
+
 	x.push_back(datax);
 	y.push_back(datay);
 

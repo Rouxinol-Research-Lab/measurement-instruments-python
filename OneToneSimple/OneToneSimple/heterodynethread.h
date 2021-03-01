@@ -30,5 +30,5 @@ public slots:
 
 signals:
 	void signalDataPoint(double, double);
-	void signalLog(char*);
+	void signalLog(const char*);
 };

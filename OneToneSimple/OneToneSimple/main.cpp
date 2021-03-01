@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 	w.show();
 
 	bool ok;
-	const char* filename = "C:\\Users\\lucam\\Documents\\Mestrado\\Medidas\\2021-02-17 Analuse 2 do circuito heterodino\\test.toml";
+	const char* filename = "C:\\Users\\lucam\\Documents\\Mestrado\\Medidas\\2021-03-01 Desenvolvimento do onetonesimple\\test.toml";
 	QString dirText = QInputDialog::getText(0, "Experiment TOML File",
 		"File name:", QLineEdit::Normal,
 		filename, &ok);
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 		
 		HeterodyneThread t(dirText.toUtf8().toStdString());
 		QObject::connect(&t, SIGNAL(signalDataPoint(double, double)), &w, SLOT(receivedDataPoint(double, double)));
-		QObject::connect(&t, SIGNAL(signalLog(char*)), &w, SLOT(receivedLog(char*)));
+		QObject::connect(&t, SIGNAL(signalLog(const char*)), &w, SLOT(receivedLog(const char*)));
 		QObject::connect(&w, SIGNAL(stopMeasurement()), &t, SLOT(stop()));
 
 		t.start();

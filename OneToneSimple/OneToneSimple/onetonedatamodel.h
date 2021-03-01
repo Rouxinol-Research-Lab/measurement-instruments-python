@@ -14,6 +14,8 @@ struct MeasurementSetting {
 	std::string Source2Address;
 	std::string AttenuatorAddress;
 	std::string OscilloscopeAddress;
+	int acquisition_delay;
+	int frequency_delay;
 	int source1Amp;
 	int source2Amp;
 	bool isSimulation;
