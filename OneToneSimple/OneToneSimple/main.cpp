@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
 		
 		HeterodyneThread t(dirText.toUtf8().toStdString());
 		QObject::connect(&t, SIGNAL(signalDataPoint(double, double)), &w, SLOT(receivedDataPoint(double, double)));
+		QObject::connect(&t, SIGNAL(signalRange(double, double)), &w, SLOT(defineRange(double, double)));
 		QObject::connect(&t, SIGNAL(signalLog(const char*)), &w, SLOT(receivedLog(const char*)));
 		QObject::connect(&w, SIGNAL(stopMeasurement()), &t, SLOT(stop()));
 

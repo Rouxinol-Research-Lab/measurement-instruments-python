@@ -390,6 +390,7 @@ void HeterodyneThread::execute()
 	datafile << "Frequency" << "," << "I" << "," << "Q" << "\n";
 
 	const double dfreq = (heterodyneSettings.stopFrequency - heterodyneSettings.startFrequency) / (heterodyneSettings.nSteps - 1);
+	emit signalRange(heterodyneSettings.stopFrequency, heterodyneSettings.startFrequency);
 
 	const double ifFreq = heterodyneSettings.ifFrequency;
 
@@ -437,7 +438,10 @@ void HeterodyneThread::execute()
 
 			{
 				QMutexLocker locker(&m_mutex);
-				if (m_stop) break;
+				if (m_stop) 
+				{
+					goto b11;
+				}
 			}
 
 			
@@ -485,13 +489,16 @@ void HeterodyneThread::execute()
 
 	}
 
+b11:
+
 	emit signalLog("Finished measurement.");
+
+
 
 	error = viPrintf(viPSG1, ":OUTPUT 0\n");
 	if (error != VI_SUCCESS)
 	{
 		emit signalLog("Error sending command to PSG1.");
-		goto b11;
 	}
 	error = viPrintf(viPSG2, ":OUTPUT 0\n");
 	if (error != VI_SUCCESS)
@@ -499,7 +506,7 @@ void HeterodyneThread::execute()
 		emit signalLog("Error sending command to PSG2.");
 	}
 
-b11:
+
 	datafile.close();
 b10:
 	delete[] Y3;

@@ -13,6 +13,7 @@ public:
 public slots:
 	void receivedDataPoint(double, double);
 	void receivedLog(const char*);
+	void defineRange(double, double);
 
 private slots:
 	void on_StopButton_clicked();
